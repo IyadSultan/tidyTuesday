@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r cars}
+```{r data}
 # Get the Data
 
 # Read in with tidytuesdayR package 
@@ -29,7 +29,7 @@ ds <- tuesdata$babynames
 
 
 
-
+# Provided table
 
 variable	class	description
 year	double	Year of birth
@@ -41,13 +41,15 @@ prop	double	Proportion of total births for that year
 library(tidyr)
 library(dplyr)
 library(ggplot2)
+
+# label centureis and count name occurance per century
 ds %>% 
   mutate(century=cut(year, breaks=c(1800, 1900, 2000, Inf), labels=c("19th century", "20th century", "21st century"), include.lowest=T)) %>% 
   group_by(century, name, sex) %>%
   summarise (n=sum(n)) -> DS
 
-
-head(DS)
+# find the most common names males (M) and females (F) by century
+# stupid code I know
 
 DS %>% filter(sex=="M" & century=="19th century") %>% arrange(-n) %>% pull(name) %>% .[1:19] ->M19
 DS %>% filter(sex=="M" & century=="20th century") %>% arrange(-n) %>% pull(name) %>% .[1:19] ->M20
@@ -56,13 +58,15 @@ DS %>% filter(sex=="F" & century=="19th century") %>% arrange(-n) %>% pull(name)
 DS %>% filter(sex=="F" & century=="20th century") %>% arrange(-n) %>% pull(name) %>% .[1:15] ->F20
 DS %>% filter(sex=="F" & century=="21st century") %>% arrange(-n) %>% pull(name) %>% .[1:16] ->F21
 
+# one vector for most common names
 M<- ordered(unique(c(M19, M20, M21)))
 Fe<- ordered(unique(c(F19, F20, F21)))
 
+# get the decade of each year 
 decade    = function(value){ return(value - value %% 10) }
 
 
-
+# order by letter
 ds %>% 
   mutate(decade=decade(year)) %>% 
   mutate(first=stringr::str_sub(name,0,1)) %>% 
