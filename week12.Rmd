@@ -162,7 +162,7 @@ Note: Top names per century (19th, 20th, 21st) were selected.'
     plot.caption.position = "panel"
   )
 
-
+ 
 
 ggsave("Fig.jpeg", g, dpi=600, units="cm", width=18, height=15)
 ```
