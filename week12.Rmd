@@ -1,0 +1,195 @@
+---
+title: "TidyTuesday Week12"
+output: ''
+date: '2022-03-20'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+# Get the Data
+
+# Read in with tidytuesdayR package 
+# Install from CRAN via: install.packages("tidytuesdayR")
+# This loads the readme and all the datasets for the week of interest
+
+# Either ISO-8601 date or year/week works!
+
+# tuesdata <- tidytuesdayR::tt_load('2022-03-22')
+tuesdata <- tidytuesdayR::tt_load(2022, week = 12)
+
+ds <- tuesdata$babynames
+
+```
+
+
+
+
+
+
+
+variable	class	description
+year	double	Year of birth
+sex	character	Binary sex of the baby
+name	character	Name of the baby
+n	integer	Raw count
+prop	double	Proportion of total births for that year
+```{r}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+ds %>% 
+  mutate(century=cut(year, breaks=c(1800, 1900, 2000, Inf), labels=c("19th century", "20th century", "21st century"), include.lowest=T)) %>% 
+  group_by(century, name, sex) %>%
+  summarise (n=sum(n)) -> DS
+
+
+head(DS)
+
+DS %>% filter(sex=="M" & century=="19th century") %>% arrange(-n) %>% pull(name) %>% .[1:19] ->M19
+DS %>% filter(sex=="M" & century=="20th century") %>% arrange(-n) %>% pull(name) %>% .[1:19] ->M20
+DS %>% filter(sex=="M" & century=="21st century") %>% arrange(-n) %>% pull(name) %>% .[1:19] ->M21
+DS %>% filter(sex=="F" & century=="19th century") %>% arrange(-n) %>% pull(name) %>% .[1:16] ->F19
+DS %>% filter(sex=="F" & century=="20th century") %>% arrange(-n) %>% pull(name) %>% .[1:15] ->F20
+DS %>% filter(sex=="F" & century=="21st century") %>% arrange(-n) %>% pull(name) %>% .[1:16] ->F21
+
+M<- ordered(unique(c(M19, M20, M21)))
+Fe<- ordered(unique(c(F19, F20, F21)))
+
+decade    = function(value){ return(value - value %% 10) }
+
+
+
+ds %>% 
+  mutate(decade=decade(year)) %>% 
+  mutate(first=stringr::str_sub(name,0,1)) %>% 
+  select(sex, decade, first, n) %>% 
+  group_by(sex, decade) %>% 
+  mutate(Total=sum(n)) %>%
+  group_by(sex, decade,first) %>% 
+  mutate(n=sum(n)) %>% 
+  mutate(prop=n*100/Total)%>%  
+  distinct(first, .keep_all = T) %>% 
+  ggplot(aes(x = decade, y = first, fill = prop, label=sex)) +
+  geom_tile()+
+  scale_fill_gradient(low = "steelblue",high = "red",space = "Lab",na.value = "grey50",  guide = "colourbar",  aesthetics = "fill")+
+  theme_classic()+
+  facet_wrap(.~sex)+
+  scale_y_discrete(limits=rev)+
+  labs(x="", y="First Letter of Baby Name", fill="%", title="Propability of each letter averaged per decade")
+
+#colors
+col_back<-'#1E2B3C'
+col_or <- "#FF9A00"
+col_bl <- "#3EA4D3"
+
+
+A<-ds %>% 
+  filter(sex=="M") %>% 
+  mutate(decade=decade(year)) %>% 
+  select(decade, name, n) %>% 
+  group_by(decade) %>% 
+  mutate(Total=sum(n)) %>%
+  group_by(decade,name) %>% 
+  mutate(n=sum(n)) %>% 
+  mutate(prop=n*100/Total)%>%  
+  filter(name %in% c(M)) %>% 
+  distinct(name, .keep_all = T) %>% 
+  ggplot(aes(x = decade, y = name, fill = prop)) +
+  geom_tile()+
+  scale_fill_gradient(low = col_back,high = "dodgerblue",space = "Lab",na.value = "steerblue",  guide = "colourbar",  aesthetics = "fill")+
+  #facet_wrap(.~sex)+
+  theme_minimal()+
+  theme(legend.position ="none", axis.text.x=element_text(angle=45, hjust=0.9, vjust=0.9),
+        text=element_text(size=9,family = "chivo", color="white"), 
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(color="black", size=0.1),
+        axis.title=element_text(face="bold"),
+        axis.text =element_text(color="white"),
+        axis.title.y=element_text(margin=margin(r=10)),
+        plot.title=element_text(face="bold"),
+        plot.background = element_rect(fill=col_back),
+        plot.margin  = margin(t=20, b=20, r=10, l=10))+
+  scale_y_discrete(limits=rev)+
+  labs(x="", y="", fill="%")
+
+B<-ds %>% 
+  filter(sex=="F") %>% 
+  mutate(decade=decade(year)) %>% 
+  select(decade, name, n) %>% 
+  group_by(decade) %>% 
+  mutate(Total=sum(n)) %>%
+  group_by(decade,name) %>% 
+  mutate(n=sum(n)) %>% 
+  mutate(prop=n*100/Total)%>%  
+  filter(name %in% c(Fe)) %>% 
+  distinct(name, .keep_all = T) %>% 
+  ggplot(aes(x = decade, y = name, fill = prop)) +
+  geom_tile()+
+  scale_fill_gradient(low = col_back,high = "deeppink",space = "Lab",na.value = "steerblue",  guide = "colourbar",  aesthetics = "fill")+
+  theme_minimal()+
+  theme(legend.position ="none", axis.text.x=element_text(angle=45, hjust=0.9, vjust=0.9),
+        text=element_text(size=9,family = "chivo", color="white"), 
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_line(color="black", size=0.1),
+        axis.title=element_text(face="bold"),
+        axis.text =element_text(color="white"),
+        axis.title.y=element_text(margin=margin(r=10)),
+        plot.title=element_text(face="bold"),
+        plot.background = element_rect(fill=col_back),
+        plot.margin  = margin(t=20, b=20, r=10, l=10))+
+  scale_y_discrete(limits=rev)+
+  labs(x="", y="", fill="%")
+
+
+library(patchwork)
+
+g<- A+B+ plot_annotation(
+  title = "Top Baby Names in US Averaged Per Decade",
+  subtitle = 'More name diversity in 21st century',
+  caption = 'Chart Type: Heatmap \r
+Data source: babynames R package from Hadley Wickham \r
+Note: Top names per century (19th, 20th, 21st) were selected.'
+)&
+  theme(
+    plot.background = element_rect(fill=col_back,color=NA),
+    plot.title = element_text(size=14,hjust=0.5,family = "spart",color="white"),
+    plot.subtitle = element_text(size=10,hjust=0.5,family = "fira",color="white"),
+    plot.caption = element_text(size=8,hjust=0,family='open',color="gray"),
+    plot.caption.position = "panel"
+  )
+
+
+
+ggsave("Fig.jpeg", g, dpi=600, units="cm", width=18, height=15)
+```
+
+```{r}
+library(stringr)
+ds$name[str_detect(ds$name, "Muhammed|Mohammed|Muhammad|Mohammad|Mohamad|Mohamed|Muhamed|Muhamad|Ahmad|Ahmed|Ahmet")] <- "Muhammed"
+
+ds %>% 
+  filter(sex=="M") %>% 
+  # mutate(decade=decade(year)) %>% 
+  select(year, name, n) %>% 
+  group_by(year) %>% 
+  mutate(Total=sum(n)) %>%
+  group_by(year,name) %>% 
+  mutate(n=sum(n)) %>% 
+  filter(name =="Muhammed") %>% 
+  distinct(name, .keep_all = T) %>% 
+  ggplot(aes(x=year, y=n)) +
+  geom_point()+
+  geom_smooth()+
+  theme_minimal()+
+  labs(x="Year", Y="Number of Baby Boy Name Muhammed is USA")
+  
+  
+ 
+  
+  
+```
+
